@@ -1,0 +1,75 @@
+name: Yokai Hub Signed APK Build
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-signed-apk:
+    name: Compile & Sign YOKAI HUB APK (ubuntu-latest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Yokai Hub Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle 8.10.2
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Generate Production Keystore & Build V1+V2+V3 Signed Release APK
+        env:
+          KEYSTORE_FILE: ${{ github.workspace }}/yokai-release-key.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'YokaiHubSpirit2026!' }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'yokaihub' }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'YokaiHubSpirit2026!' }}
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" \vert{} base64 -d > "$KEYSTORE_FILE"
+          else
+            keytool -genkeypair -v \
+              -keystore "$KEYSTORE_FILE" \
+              -alias "$KEY_ALIAS" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass "$KEYSTORE_PASSWORD" \
+              -keypass "$KEY_PASSWORD" \
+              -dname "CN=YokaiHub, OU=CyberShrine, O=Kingerald, L=Tokyo, S=Kanto, C=JP"
+          fi
+          gradle assembleRelease --no-daemon --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk YOKAI-HUB-v1.0.0-release-signed.apk
+
+      - name: Upload Signed APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: YOKAI-HUB-Signed-Release-APK
+          path: YOKAI-HUB-v1.0.0-release-signed.apk
+          if-no-files-found: error
+
+      - name: Publish Signed APK to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: "YOKAI HUB v1.0.${{ github.run_number }} (Signed Production APK)"
+          body: |
+            ### 🦊 YOKAI HUB (`com.yokaihub.agent`) — Signed Production Release
+            - **Zero-Preset BYOK Engine:** Dual-Protocol Adapter (`Anthropic Native /v1/messages` + `OpenAI Compatible /chat/completions`)
+            - **Live Outbound IPv4 Detector:** 1-Tap Copy for AgentRouter IP Whitelisting
+            - **Mandatory Verify-Before-Save Handshake:** `Test Connection` (`HTTP 200 OK`) required before saving
+            - **Plugins Hub:** Official GitHub OAuth 2.0 (`Web Redirect` & `Device Flow`) + Autonomous Repository Commit Agent
+          files: YOKAI-HUB-v1.0.0-release-signed.apk

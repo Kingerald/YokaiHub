@@ -1,0 +1,6 @@
+-keepattributes *Annotation*,InnerClasses,Signature
+-dontnote kotlinx.serialization.AnnotationsKt
+-keepclassmembers class kotlinx.serialization.json.** { *; }
+-keepclasseswithmembers class com.yokaihub.agent.data.models.** { *; }
+-dontwarn okhttp3.**
+-dontwarn okio.**
