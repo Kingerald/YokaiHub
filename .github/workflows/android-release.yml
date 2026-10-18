@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build-signed-apk:
+  build:
     name: Compile & Sign YOKAI HUB APK (ubuntu-latest)
     runs-on: ubuntu-latest
 
@@ -18,58 +18,77 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Configure Pre-installed Android SDK
+        run: |
+          echo "Using pre-installed ANDROID_HOME=$ANDROID_HOME"
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
       - name: Set up Gradle 8.10.2
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.10.2'
+        run: |
+          curl -sL https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o gradle.zip
+          unzip -q gradle.zip -d /tmp
+          echo "/tmp/gradle-8.10.2/bin" >> $GITHUB_PATH
+          gradle --version
 
       - name: Generate Production Keystore & Build V1+V2+V3 Signed Release APK
-        env:
-          KEYSTORE_FILE: ${{ github.workspace }}/yokai-release-key.jks
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'YokaiHubSpirit2026!' }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'yokaihub' }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'YokaiHubSpirit2026!' }}
         run: |
-          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.KEYSTORE_BASE64 }}" \vert{} base64 -d > "$KEYSTORE_FILE"
+          mkdir -p app/release
+          keytool -genkeypair -v \
+            -keystore app/release/yokaihub-release.jks \
+            -alias yokaihub \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass yokaihub2026 -keypass yokaihub2026 \
+            -dname "CN=YokaiHub, OU=Mobile, O=Kingerald, L=Tokyo, S=Tokyo, C=JP"
+
+          export KEYSTORE_PATH="$PWD/app/release/yokaihub-release.jks"
+          export KEYSTORE_PASSWORD="yokaihub2026"
+          export KEY_ALIAS="yokaihub"
+          export KEY_PASSWORD="yokaihub2026"
+
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+            ./gradlew assembleRelease --no-daemon --stacktrace
           else
-            keytool -genkeypair -v \
-              -keystore "$KEYSTORE_FILE" \
-              -alias "$KEY_ALIAS" \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -storepass "$KEYSTORE_PASSWORD" \
-              -keypass "$KEY_PASSWORD" \
-              -dname "CN=YokaiHub, OU=CyberShrine, O=Kingerald, L=Tokyo, S=Kanto, C=JP"
+            gradle assembleRelease --no-daemon --stacktrace
           fi
-          gradle assembleRelease --no-daemon --stacktrace
-          cp app/build/outputs/apk/release/app-release.apk YOKAI-HUB-v1.0.0-release-signed.apk
+
+          UNSIGNED_OR_BUILT_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          echo "Built APK found at: $UNSIGNED_OR_BUILT_APK"
+
+          BUILD_TOOLS="$ANDROID_HOME/build-tools/34.0.0"
+          $BUILD_TOOLS/zipalign -v -f -p 4 "$UNSIGNED_OR_BUILT_APK" app/build/outputs/apk/release/YokaiHub-aligned.apk
+          $BUILD_TOOLS/apksigner sign \
+            --ks "$KEYSTORE_PATH" \
+            --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass pass:"$KEYSTORE_PASSWORD" \
+            --key-pass pass:"$KEY_PASSWORD" \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
+            --out app/build/outputs/apk/release/YokaiHub-v1.0.0-Signed.apk \
+            app/build/outputs/apk/release/YokaiHub-aligned.apk
+
+          $BUILD_TOOLS/apksigner verify -v app/build/outputs/apk/release/YokaiHub-v1.0.0-Signed.apk
 
       - name: Upload Signed APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: YOKAI-HUB-Signed-Release-APK
-          path: YOKAI-HUB-v1.0.0-release-signed.apk
-          if-no-files-found: error
+          name: YokaiHub-Signed-APK
+          path: app/build/outputs/apk/release/YokaiHub-v1.0.0-Signed.apk
 
       - name: Publish Signed APK to GitHub Releases
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: "YOKAI HUB v1.0.${{ github.run_number }} (Signed Production APK)"
-          body: |
-            ### 🦊 YOKAI HUB (`com.yokaihub.agent`) — Signed Production Release
-            - **Zero-Preset BYOK Engine:** Dual-Protocol Adapter (`Anthropic Native /v1/messages` + `OpenAI Compatible /chat/completions`)
-            - **Live Outbound IPv4 Detector:** 1-Tap Copy for AgentRouter IP Whitelisting
-            - **Mandatory Verify-Before-Save Handshake:** `Test Connection` (`HTTP 200 OK`) required before saving
-            - **Plugins Hub:** Official GitHub OAuth 2.0 (`Web Redirect` & `Device Flow`) + Autonomous Repository Commit Agent
-          files: YOKAI-HUB-v1.0.0-release-signed.apk
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v1.0.${{ github.run_number }}"
+          gh release create "$TAG" \
+            app/build/outputs/apk/release/YokaiHub-v1.0.0-Signed.apk \
+            --title "YOKAI HUB $TAG (Signed Production APK)" \
+            --notes "Automated V1+V2+V3 Signed APK build for YOKAI HUB (com.yokaihub.agent)." \
+            --clobber
