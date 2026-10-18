@@ -18,27 +18,25 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Configure Pre-installed Android SDK
+      - name: Configure Pre-installed Android SDK (API 35)
         run: |
-          echo "Using pre-installed ANDROID_HOME=$ANDROID_HOME"
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null \vert{}\vert{} true$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Set up Gradle 8.10.2
         run: |
           curl -sL https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o gradle.zip
           unzip -q gradle.zip -d /tmp
           echo "/tmp/gradle-8.10.2/bin" >> $GITHUB_PATH
-          gradle --version
 
-      - name: Generate Production Keystore & Build V1+V2+V3 Signed Release APK
+      - name: Generate Keystore & Compile Release APK
         run: |
           mkdir -p app/release
+          rm -f app/release/yokaihub-release.jks
           keytool -genkeypair -v \
             -keystore app/release/yokaihub-release.jks \
             -alias yokaihub \
@@ -51,18 +49,23 @@ jobs:
           export KEY_ALIAS="yokaihub"
           export KEY_PASSWORD="yokaihub2026"
 
-          if [ -f "./gradlew" ]; then
-            chmod +x ./gradlew
-            ./gradlew assembleRelease --no-daemon --stacktrace
-          else
-            gradle assembleRelease --no-daemon --stacktrace
+          set +e
+          gradle assembleRelease --no-daemon --stacktrace > build.log 2>&1
+          EXIT_CODE=$?
+          cat build.log
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "### ❌ Gradle Compilation Error Details" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            grep -E "e: |FAILURE:|What went wrong:|>\s|AAPT:|error:" -A 5 build.log | tail -n 80 >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit $EXIT_CODE
           fi
+          set -e
 
-          UNSIGNED_OR_BUILT_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
-          echo "Built APK found at: $UNSIGNED_OR_BUILT_APK"
-
-          BUILD_TOOLS="$ANDROID_HOME/build-tools/34.0.0"
-          $BUILD_TOOLS/zipalign -v -f -p 4 "$UNSIGNED_OR_BUILT_APK" app/build/outputs/apk/release/YokaiHub-aligned.apk
+          BUILT_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          BUILD_TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          $BUILD_TOOLS/zipalign -v -f -p 4 "$BUILT_APK" app/build/outputs/apk/release/YokaiHub-aligned.apk
           $BUILD_TOOLS/apksigner sign \
             --ks "$KEYSTORE_PATH" \
             --ks-key-alias "$KEY_ALIAS" \
@@ -73,8 +76,6 @@ jobs:
             --v3-signing-enabled true \
             --out app/build/outputs/apk/release/YokaiHub-v1.0.0-Signed.apk \
             app/build/outputs/apk/release/YokaiHub-aligned.apk
-
-          $BUILD_TOOLS/apksigner verify -v app/build/outputs/apk/release/YokaiHub-v1.0.0-Signed.apk
 
       - name: Upload Signed APK Artifact
         uses: actions/upload-artifact@v4

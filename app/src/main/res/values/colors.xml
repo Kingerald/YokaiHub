@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="shrine_obsidian">#090C12</color>
+    <color name="shadow_slate">#121722</color>
+    <color name="kitsune_cyan">#00E5FF</color>
+    <color name="torii_crimson">#FF2E54</color>
+    <color name="yokai_violet">#7C4DFF</color>
+</resources>
