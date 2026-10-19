@@ -45,6 +45,7 @@ jobs:
             -dname "CN=YokaiHub, OU=Mobile, O=Kingerald, L=Tokyo, S=Tokyo, C=JP"
 
           export KEYSTORE_PATH="$PWD/app/release/yokaihub-release.jks"
+          export KEYSTORE_FILE="$KEYSTORE_PATH"
           export KEYSTORE_PASSWORD="yokaihub2026"
           export KEY_ALIAS="yokaihub"
           export KEY_PASSWORD="yokaihub2026"
