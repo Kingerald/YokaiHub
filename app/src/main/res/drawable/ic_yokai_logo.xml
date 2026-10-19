@@ -5,82 +5,43 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Deep Shrine Obsidian Backdrop -->
+    <!-- Deep Shrine Obsidian Background -->
     <path
         android:fillColor="#090C12"
         android:pathData="M0,0h108v108h-108z" />
 
-    <!-- Outer Hexagonal Hub Shield -->
+    <!-- Outer Hexagonal Cyber-Shrine Shield -->
     <path
         android:fillColor="#121722"
         android:strokeColor="#00E5FF"
         android:strokeWidth="2.5"
-        android:pathData="M54,10 L92,32 L92,76 L54,98 L16,76 L16,32 Z" />
+        android:pathData="M54,10 L90,30 L90,78 L54,98 L18,78 L18,30 Z" />
 
     <!-- Yokai Violet Circuit Traces to Plugin Nodes -->
     <path
         android:strokeColor="#7C4DFF"
         android:strokeWidth="1.8"
-        android:pathData="M54,10
-cat << 'EOF' > app/src/main/res/drawable/ic_yokai_logo.xml
-<?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
+        android:pathData="M54,10 L54,22 M90,30 L78,37 M90,78 L78,71 M54,98 L54,86 M18,78 L30,71 M18,30 L30,37" />
 
-    <!-- Deep Shrine Obsidian Backdrop -->
+    <!-- Kitsune / Yokai Geometric Mask Ears & Brow -->
+    <path
+        android:fillColor="#1A2233"
+        android:strokeColor="#FF2E54"
+        android:strokeWidth="2.2"
+        android:pathData="M30,26 L44,42 L54,38 L64,42 L78,26 L72,62 L54,82 L36,62 Z" />
+
+    <!-- Glowing Kitsune Spirit Cyan Eyes -->
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M37,48 L49,52 L40,56 Z" />
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M71,48 L59,52 L68,56 Z" />
+
+    <!-- Center Keyhole Silhouette (Symbolizing BYOK - Your Own Key) -->
     <path
         android:fillColor="#090C12"
-        android:pathData="M0,0h108v108h-108z" />
-
-    <!-- Outer Hexagonal Hub Shield -->
-    <path
-        android:fillColor="#121722"
-        android:strokeColor="#00E5FF"
-        android:strokeWidth="2.5"
-        android:pathData="M54,10 L92,32 L92,76 L54,98 L16,76 L16,32 Z" />
-
-    <!-- Yokai Violet Circuit Traces to Plugin Nodes -->
-    <path
-        android:strokeColor="#7C4DFF"
-        android:strokeWidth="1.8"
-        android:pathData="M54,10
-<!-- Yokai Violet Circuit Traces to Plugin Nodes -->
-    <path
-        android:strokeColor="#7C4DFF"
-        android:strokeWidth="1.8"
-        android:pathData="M54,10 L54,22 M92,32 L80,39 M92,76 L80,69 M16,32 L28,39 M16,76 L28,69" />
-
-    <!-- Angular Kitsune Ears (Torii Crimson Tips) -->
-    <path
-        android:fillColor="#FF2E54"
-        android:pathData="M26,22 L42,36 L28,46 Z" />
-    <path
-        android:fillColor="#FF2E54"
-        android:pathData="M82,22 L66,36 L80,46 Z" />
-
-    <!-- Kitsune Spirit Mask Base -->
-    <path
-        android:fillColor="#1A2232"
         android:strokeColor="#00E5FF"
         android:strokeWidth="1.8"
-        android:pathData="M28,44 L54,30 L80,44 L72,72 L54,88 L36,72 Z" />
-
-    <!-- Glowing Spirit Cyan Slanted Eyes -->
-    <path
-        android:fillColor="#00E5FF"
-        android:pathData="M34,50 L47,55 L38,58 Z" />
-    <path
-        android:fillColor="#00E5FF"
-        android:pathData="M74,50 L61,55 L70,58 Z" />
-
-    <!-- Central Keyhole Silhouette (Your Own Key Symbol) -->
-    <path
-        android:fillColor="#00E5FF"
-        android:pathData="M54,54 A5,5 0 1,1 53.9,54 Z" />
-    <path
-        android:fillColor="#00E5FF"
-        android:pathData="M51,58 L57,58 L59,74 L49,74 Z" />
+        android:pathData="M50,58 A4,4 0 1,1 58,58 L56,64 L59,74 L49,74 L52,64 Z" />
 </vector>
